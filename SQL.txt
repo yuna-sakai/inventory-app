@@ -1,0 +1,39 @@
+CREATE DATABASE inventorydb;
+
+\c inventorydb
+
+CREATE TABLE roles (
+    role_id INT PRIMARY KEY,
+    role_name VARCHAR(50)
+);
+
+INSERT INTO roles (role_id, role_name) VALUES
+(1, '管理者'),
+(2, '一般');
+
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    login_id VARCHAR(50) UNIQUE,
+    user_name VARCHAR(50),
+    password VARCHAR(50),
+    role_id INT NOT NULL REFERENCES roles(role_id)
+);
+
+ALTER SEQUENCE users_user_id_seq RESTART WITH 101;
+
+INSERT INTO users (login_id, user_name, password, role_id) VALUES
+('gondou', '権藤', 'aaaaa', 1),
+('sakai', '酒井', 'bbbbb', 2);
+
+CREATE TABLE inventories (
+    item_id SERIAL PRIMARY KEY, 
+    user_id INT NOT NULL REFERENCES users(user_id),
+    item_name VARCHAR(50),
+    quantity INT,
+    expiration_date DATE
+);
+
+INSERT INTO inventories (user_id, item_name, quantity, expiration_date) VALUES
+(101, '牛乳', 3, '2024-07-25');
+
+
