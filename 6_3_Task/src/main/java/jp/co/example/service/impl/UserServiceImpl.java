@@ -20,13 +20,17 @@ public class UserServiceImpl implements UserService {
 	private JdbcTemplate jdbcTemplate;
 
 	private RowMapper<User> userRowMapper = (rs, rowNum) -> {
-		User user = new User();
-		user.setUserId(rs.getInt("user_id"));
-		user.setLoginId(rs.getString("login_id"));
-		user.setUserName(rs.getString("user_name"));
-		user.setPassword(rs.getString("password"));
-		user.setRoleId(rs.getInt("role_id"));
-		return user;
+	    User user = new User();
+	    user.setUserId(rs.getInt("user_id"));
+	    user.setLoginId(rs.getString("login_id"));
+	<<<<<<< HEAD
+	    user.setUserName(rs.getString("user_name"));
+	=======
+	    user.setUserName(rs.getString("userName"));
+	<<<<<<< main
+	    user.setPassword(rs.getString("password"));
+	    user.setRoleId(rs.getInt("role_id"));
+	    return user;
 	};
 
 	private RowMapper<Role> roleRowMapper = (rs, rowNum) -> {
