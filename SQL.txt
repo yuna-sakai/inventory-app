@@ -22,7 +22,7 @@ CREATE TABLE users (
 ALTER SEQUENCE users_user_id_seq RESTART WITH 101;
 
 INSERT INTO users (login_id, user_name, password, role_id) VALUES
-('admimn', 'admimn', 'admimn', 1),
+('admin', 'admin', 'admin', 1),
 ('user', 'user', 'user', 2);
 
 CREATE TABLE inventories (
@@ -35,6 +35,7 @@ CREATE TABLE inventories (
 
 INSERT INTO inventories (user_id, item_name, quantity, expiration_date) VALUES
 (101, '牛乳', 3, '2024-07-25');
+
 
 
 
