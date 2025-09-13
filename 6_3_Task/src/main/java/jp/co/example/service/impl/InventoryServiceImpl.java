@@ -15,69 +15,106 @@ import jp.co.example.service.InventoryService;
 @Service
 public class InventoryServiceImpl implements InventoryService {
 
-	@Autowired
-	private InventoryDao inventoryDao;
+    @Autowired
+    private InventoryDao inventoryDao;
 
-	private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-	@Override
-	public List<Inventory> getAllInventories() {
-		return inventoryDao.findAll().stream()
-				.map(this::formatInventory)
-				.collect(Collectors.toList());
-	}
+    // ========================
+    // 在庫一覧（ソート対応）
+    // ========================
+    @Override
+    public List<Inventory> getSortedInventories(String sortKey) {
+        List<Inventory> list;
+        if ("expiry_date".equals(sortKey)) {
+            list = inventoryDao.findAllOrderByExpiryDateAndName();
+        } else {
+            list = inventoryDao.findAllOrderByName();
+        }
+        return list.stream()
+                .map(this::formatInventory)
+                .collect(Collectors.toList());
+    }
 
-	@Override
-	public List<Inventory> searchInventory(String query) {
-		return inventoryDao.findByItemNameContaining(query).stream()
-				.map(this::formatInventory)
-				.collect(Collectors.toList());
-	}
+    // ========================
+    // 検索（ソート対応）
+    // ========================
+    @Override
+    public List<Inventory> searchInventory(String query, String sortKey) {
+        List<Inventory> list;
+        if ("expiry_date".equals(sortKey)) {
+            list = inventoryDao.findByItemNameContainingOrderByExpiryDateAndName(query);
+        } else {
+            list = inventoryDao.findByItemNameContainingOrderByName(query);
+        }
+        return list.stream()
+                .map(this::formatInventory)
+                .collect(Collectors.toList());
+    }
 
-	@Override
-	public Inventory getInventoryById(int id) {
-		return inventoryDao.findById(id)
-				.map(this::formatInventory)
-				.orElse(null);
-	}
+    // ========================
+    // 既存メソッド
+    // ========================
 
-	@Override
-	public void deleteInventory(int id) {
-		inventoryDao.deleteById(id);
-	}
+ @Override
+ public List<Inventory> getAllInventories() {
+     // デフォルトは商品名順
+     return getSortedInventories("item_name");
+ }
 
-	@Override
-	public void updateInventory(Inventory inventory) {
-		inventoryDao.updateInventory(inventory);
-	}
+ @Override
+ public List<Inventory> searchInventory(String query) {
+     // デフォルトは商品名順
+     return searchInventory(query, "item_name");
+ }
 
-	@Override
-	public void saveInventory(Inventory inventory) {
-		inventoryDao.save(inventory);
-	}
+    @Override
+    public Inventory getInventoryById(int id) {
+        return inventoryDao.findById(id)
+                .map(this::formatInventory)
+                .orElse(null);
+    }
 
-	@Override
-	public void registerInventory(int itemId, int userId, String itemName, Integer quantity, LocalDate expiryDate) {
-		Inventory inventory = new Inventory();
-		inventory.setItemId(itemId);
-		inventory.setUserId(userId);
-		inventory.setItemName(itemName);
-		inventory.setQuantity(quantity);
-		inventory.setExpiryDate(expiryDate);
-		inventoryDao.save(inventory);
-	}
+    @Override
+    public void deleteInventory(int id) {
+        inventoryDao.deleteById(id);
+    }
 
-	@Override
-	public List<Inventory> findItemsExpiringBefore(LocalDate date) {
-		return inventoryDao.findItemsExpiringBefore(date).stream()
-				.map(this::formatInventory)
-				.collect(Collectors.toList());
-	}
+    @Override
+    public void updateInventory(Inventory inventory) {
+        inventoryDao.updateInventory(inventory);
+    }
 
-	private Inventory formatInventory(Inventory inventory) {
-		if (inventory.getExpiryDate() != null) {
-			inventory.setFormattedExpiryDate(inventory.getExpiryDate().format(formatter));
-		}
-		return inventory;
-	}
+    @Override
+    public void saveInventory(Inventory inventory) {
+        inventoryDao.save(inventory);
+    }
+
+    @Override
+    public void registerInventory(int itemId, int userId, String itemName, Integer quantity, LocalDate expiryDate) {
+        Inventory inventory = new Inventory();
+        inventory.setItemId(itemId);
+        inventory.setUserId(userId);
+        inventory.setItemName(itemName);
+        inventory.setQuantity(quantity);
+        inventory.setExpiryDate(expiryDate);
+        inventoryDao.save(inventory);
+    }
+
+    @Override
+    public List<Inventory> findItemsExpiringBefore(LocalDate date) {
+        return inventoryDao.findItemsExpiringBefore(date).stream()
+                .map(this::formatInventory)
+                .collect(Collectors.toList());
+    }
+
+    // ========================
+    // 日付フォーマット共通処理
+    // ========================
+    private Inventory formatInventory(Inventory inventory) {
+        if (inventory.getExpiryDate() != null) {
+            inventory.setFormattedExpiryDate(inventory.getExpiryDate().format(formatter));
+        }
+        return inventory;
+    }
 }

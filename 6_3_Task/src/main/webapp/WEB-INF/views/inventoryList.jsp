@@ -11,6 +11,16 @@
 </head>
 <body>
 	<h1 class="center">在庫一覧ページ</h1>
+	<form action="inventoryList" method="get">
+    <label>並び順:</label>
+    <select name="sortKey">
+        <option value="item_name" ${param.sortKey == 'item_name' ? 'selected' : ''}>商品名</option>
+        <option value="expiry_date" ${param.sortKey == 'expiry_date' ? 'selected' : ''}>賞味期限</option>
+    </select>
+    <button type="submit">並び替え</button>
+</form>
+
+	
 
 	<form action="searchResult" method="get">
 		<div>

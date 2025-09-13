@@ -25,156 +25,167 @@ import jp.co.example.service.InventoryService;
 @Controller
 public class InventoryController {
 
-	@Autowired
-	private InventoryService inventoryService;
+    @Autowired
+    private InventoryService inventoryService;
 
-	@Autowired
-	private AuthController authController;
+    @Autowired
+    private AuthController authController;
 
-	@GetMapping("/registerInventory")
-	public String showRegisterInventoryPage(Model model) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+    @GetMapping("/registerInventory")
+    public String showRegisterInventoryPage(Model model) {
+        String redirect = authController.checkLogin();
+        if (redirect != null)
+            return redirect;
 
-		model.addAttribute("inventoryForm", new InventoryForm());
-		return "registerInventory";
-	}
+        model.addAttribute("inventoryForm", new InventoryForm());
+        return "registerInventory";
+    }
 
-	@PostMapping("/registerInventory")
-	public String registerInventory(@Valid @ModelAttribute InventoryForm inventoryForm, BindingResult bindingResult,
-			Model model, HttpSession session) {
+    @PostMapping("/registerInventory")
+    public String registerInventory(@Valid @ModelAttribute InventoryForm inventoryForm, BindingResult bindingResult,
+            Model model, HttpSession session) {
 
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+        String redirect = authController.checkLogin();
+        if (redirect != null)
+            return redirect;
 
-		if (bindingResult.hasErrors()) {
-			return "registerInventory";
-		}
+        if (bindingResult.hasErrors()) {
+            return "registerInventory";
+        }
 
-		LocalDate expiryDate = null;
-		if (!inventoryForm.getExpiryDate().isEmpty()) {
-			try {
-				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-				expiryDate = LocalDate.parse(inventoryForm.getExpiryDate(), formatter);
-			} catch (Exception e) {
-				model.addAttribute("errorMessage", "賞味期限の日付が無効です");
-				return "registerInventory";
-			}
-		}
+        LocalDate expiryDate = null;
+        if (!inventoryForm.getExpiryDate().isEmpty()) {
+            try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                expiryDate = LocalDate.parse(inventoryForm.getExpiryDate(), formatter);
+            } catch (Exception e) {
+                model.addAttribute("errorMessage", "賞味期限の日付が無効です");
+                return "registerInventory";
+            }
+        }
 
-		User user = (User) session.getAttribute("user");
-		int userId = user.getUserId();
+        User user = (User) session.getAttribute("user");
+        int userId = user.getUserId();
 
-		int quantity = Integer.parseInt(inventoryForm.getQuantity());
-		inventoryService.registerInventory(inventoryForm.getItemId(), userId, inventoryForm.getItemName(), quantity,
-				expiryDate);
+        int quantity = Integer.parseInt(inventoryForm.getQuantity());
+        inventoryService.registerInventory(inventoryForm.getItemId(), userId, inventoryForm.getItemName(), quantity,
+                expiryDate);
 
-		return "redirect:/inventoryList";
-	}
+        return "redirect:/inventoryList";
+    }
 
-	@GetMapping("/inventoryList")
-	public String showInventoryList(Model model) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+    // =========================
+    // 在庫一覧・検索：ソート対応
+    // =========================
+    @GetMapping("/inventoryList")
+    public String showInventoryList(@RequestParam(name = "sortKey", required = false, defaultValue = "item_name") String sortKey,
+                                    Model model) {
+        String redirect = authController.checkLogin();
+        if (redirect != null)
+            return redirect;
 
-		LocalDate currentDate = LocalDate.now();
-		List<Inventory> inventoryList = inventoryService.getAllInventories().stream()
-				.peek(inventory -> {
-					if (inventory.getExpiryDate() != null) {
-						inventory.setIsExpiringSoon(inventory.getExpiryDate().isBefore(currentDate.plusDays(4)));
-					} else {
-						inventory.setIsExpiringSoon(false);
-					}
-				})
-				.collect(Collectors.toList());
+        LocalDate currentDate = LocalDate.now();
+        List<Inventory> inventoryList = inventoryService.getSortedInventories(sortKey).stream()
+                .peek(inventory -> {
+                    if (inventory.getExpiryDate() != null) {
+                        inventory.setIsExpiringSoon(inventory.getExpiryDate().isBefore(currentDate.plusDays(4)));
+                    } else {
+                        inventory.setIsExpiringSoon(false);
+                    }
+                })
+                .collect(Collectors.toList());
 
-		model.addAttribute("inventoryList", inventoryList);
-		return "inventoryList";
-	}
+        model.addAttribute("inventoryList", inventoryList);
+        model.addAttribute("sortKey", sortKey);
+        return "inventoryList";
+    }
 
-	@GetMapping("/searchResult")
-	public String searchResult(@RequestParam("searchQuery") String searchQuery, Model model) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+    @GetMapping("/searchResult")
+    public String searchResult(@RequestParam("searchQuery") String searchQuery,
+                               @RequestParam(name = "sortKey", required = false, defaultValue = "item_name") String sortKey,
+                               Model model) {
+        String redirect = authController.checkLogin();
+        if (redirect != null)
+            return redirect;
 
-		if (searchQuery == null || searchQuery.trim().isEmpty()) {
-			model.addAttribute("errorMessage", "食材名を入力してください");
-			model.addAttribute("inventoryList", inventoryService.getAllInventories());
-			return "inventoryList";
-		}
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            model.addAttribute("errorMessage", "食材名を入力してください");
+            model.addAttribute("inventoryList", inventoryService.getSortedInventories(sortKey));
+            return "inventoryList";
+        }
 
-		List<Inventory> inventoryList = inventoryService.searchInventory(searchQuery);
-		if (inventoryList.isEmpty()) {
-			model.addAttribute("errorMessage", "登録されていない食材です");
-			model.addAttribute("inventoryList", inventoryService.getAllInventories());
-			return "inventoryList";
-		} else {
-			model.addAttribute("inventoryList", inventoryList);
-			return "searchResult";
-		}
-	}
+        List<Inventory> inventoryList = inventoryService.searchInventory(searchQuery, sortKey);
+        if (inventoryList.isEmpty()) {
+            model.addAttribute("errorMessage", "登録されていない食材です");
+            model.addAttribute("inventoryList", inventoryService.getSortedInventories(sortKey));
+            return "inventoryList";
+        } else {
+            model.addAttribute("inventoryList", inventoryList);
+            model.addAttribute("sortKey", sortKey);
+            return "searchResult";
+        }
+    }
 
-	@GetMapping("/inventoryDetail")
-	public String showInventoryDetail(@RequestParam("id") int id, Model model) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+    // =========================
+    // 詳細・数量変更・削除は既存通り
+    // =========================
+    @GetMapping("/inventoryDetail")
+    public String showInventoryDetail(@RequestParam("id") int id, Model model) {
+        String redirect = authController.checkLogin();
+        if (redirect != null)
+            return redirect;
 
-		Inventory inventory = inventoryService.getInventoryById(id);
-		if (inventory == null) {
-			return "redirect:/inventoryList";
-		}
+        Inventory inventory = inventoryService.getInventoryById(id);
+        if (inventory == null) {
+            return "redirect:/inventoryList";
+        }
 
-		model.addAttribute("inventory", inventory);
-		return "inventoryDetail";
-	}
+        model.addAttribute("inventory", inventory);
+        return "inventoryDetail";
+    }
 
-	@PostMapping("/increaseQuantity")
-	public String increaseQuantity(@RequestParam("id") int id, @RequestParam("quantity") int quantity) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+    @PostMapping("/increaseQuantity")
+    public String increaseQuantity(@RequestParam("id") int id, @RequestParam("quantity") int quantity) {
+        String redirect = authController.checkLogin();
+        if (redirect != null)
+            return redirect;
 
-		Inventory inventory = inventoryService.getInventoryById(id);
-		if (inventory != null) {
-			inventory.setQuantity(inventory.getQuantity() + quantity);
-			inventoryService.updateInventory(inventory);
-		}
-		return "redirect:/inventoryDetail?id=" + id;
-	}
+        Inventory inventory = inventoryService.getInventoryById(id);
+        if (inventory != null) {
+            inventory.setQuantity(inventory.getQuantity() + quantity);
+            inventoryService.updateInventory(inventory);
+        }
+        return "redirect:/inventoryDetail?id=" + id;
+    }
 
-	@PostMapping("/decreaseQuantity")
-	public String decreaseQuantity(@RequestParam("id") int id, @RequestParam("quantity") int quantity, Model model) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+    @PostMapping("/decreaseQuantity")
+    public String decreaseQuantity(@RequestParam("id") int id, @RequestParam("quantity") int quantity, Model model) {
+        String redirect = authController.checkLogin();
+        if (redirect != null)
+            return redirect;
 
-		Inventory inventory = inventoryService.getInventoryById(id);
-		if (inventory != null) {
-			if (inventory.getQuantity() > quantity) {
-				inventory.setQuantity(inventory.getQuantity() - quantity);
-				inventoryService.updateInventory(inventory);
-				return "redirect:/inventoryDetail?id=" + id;
-			} else {
-				model.addAttribute("inventory", inventory);
-				model.addAttribute("errorMessage", "削除を押してください。");
-				return "inventoryDetail";
-			}
-		}
-		return "redirect:/inventoryList";
-	}
+        Inventory inventory = inventoryService.getInventoryById(id);
+        if (inventory != null) {
+            if (inventory.getQuantity() > quantity) {
+                inventory.setQuantity(inventory.getQuantity() - quantity);
+                inventoryService.updateInventory(inventory);
+                return "redirect:/inventoryDetail?id=" + id;
+            } else {
+                model.addAttribute("inventory", inventory);
+                model.addAttribute("errorMessage", "削除を押してください。");
+                return "inventoryDetail";
+            }
+        }
+        return "redirect:/inventoryList";
+    }
 
-	@PostMapping("/deleteInventory")
-	public String deleteInventory(@RequestParam("id") int id) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+    @PostMapping("/deleteInventory")
+    public String deleteInventory(@RequestParam("id") int id) {
+        String redirect = authController.checkLogin();
+        if (redirect != null)
+            return redirect;
 
-		inventoryService.deleteInventory(id);
-		return "redirect:/inventoryList";
-	}
+        inventoryService.deleteInventory(id);
+        return "redirect:/inventoryList";
+    }
 }

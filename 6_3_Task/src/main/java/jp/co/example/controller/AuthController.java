@@ -21,60 +21,68 @@ import jp.co.example.service.UserService;
 @Controller
 public class AuthController {
 
-	@Autowired
-	private UserService userService;
+    @Autowired
+    private UserService userService;
 
-	@Autowired
-	private RoleService roleService;
+    @Autowired
+    private RoleService roleService;
 
-	@Autowired
-	private HttpSession session;
+    @Autowired
+    private HttpSession session;
 
-	public String checkLogin() {
-		User user = (User) session.getAttribute("user");
-		if (user == null) {
-			return "redirect:/login";
-		}
-		return null;
-	}
+    // ログインチェック
+    public String checkLogin() {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "redirect:/login";
+        }
+        return null;
+    }
 
-	@GetMapping("/login")
-	public String showLogin(Model model) {
-		model.addAttribute("loginForm", new LoginForm());
-		return "login";
-	}
+    @GetMapping("/login")
+    public String showLogin(Model model) {
+        model.addAttribute("loginForm", new LoginForm());
+        return "login";
+    }
 
-	@PostMapping("/login")
-	public String login(@Valid LoginForm form, BindingResult bindingResult, Model model) {
-		if (bindingResult.hasErrors()) {
-			return "login";
-		}
+    @PostMapping("/login")
+    public String login(@Valid LoginForm form, BindingResult bindingResult, Model model) {
+        if (bindingResult.hasErrors()) {
+            return "login";
+        }
 
-		User user = userService.authenticate(form.getLoginId(), form.getPassword());
-		if (user == null) {
-			String errorMessage = "ログイン情報が正しくありません。再度お試しください。";
-			model.addAttribute("errorMessage", errorMessage);
-			return "login";
-		}
+        // 入力値の前後空白を除去
+        String loginId = form.getLoginId().trim();
+        String password = form.getPassword().trim();
 
-		session.setAttribute("user", user);
-		session.setAttribute("loggedInUserName", user.getUserName());
+        // 認証
+        User user = userService.authenticate(loginId, password);
+        if (user == null) {
+            String errorMessage = "ログイン情報が正しくありません。再度お試しください。";
+            model.addAttribute("errorMessage", errorMessage);
+            return "login";
+        }
 
-		List<Role> roles = roleService.findAllRoles();
-		session.setAttribute("roles", roles);
+        // セッションにユーザー情報をセット
+        session.setAttribute("user", user);
+        session.setAttribute("loggedInUserName", user.getUserName());
 
-		if (user.getRoleId() == 1) {
-			return "redirect:/userManagement";
-		} else if (user.getRoleId() == 2) {
-			return "redirect:/inventoryList";
-		}
+        List<Role> roles = roleService.findAllRoles();
+        session.setAttribute("roles", roles);
 
-		return "login";
-	}
+        // 役割によってリダイレクト
+        if (user.getRoleId() == 1) {
+            return "redirect:/userManagement";
+        } else if (user.getRoleId() == 2) {
+            return "redirect:/inventoryList";
+        }
 
-	@PostMapping("/logout")
-	public String logout() {
-		session.invalidate();
-		return "logout";
-	}
+        return "login";
+    }
+
+    @PostMapping("/logout")
+    public String logout() {
+        session.invalidate();
+        return "logout";
+    }
 }
