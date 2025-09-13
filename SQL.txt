@@ -22,7 +22,7 @@ CREATE TABLE users (
 ALTER SEQUENCE users_user_id_seq RESTART WITH 101;
 
 INSERT INTO users (login_id, user_name, password, role_id) VALUES
-('admimn', 'admimn', 'admimn', 1),
+('admin', 'admin', 'admin', 1),
 ('user', 'user', 'user', 2);
 
 CREATE TABLE inventories (
@@ -36,5 +36,17 @@ CREATE TABLE inventories (
 INSERT INTO inventories (user_id, item_name, quantity, expiration_date) VALUES
 (101, '牛乳', 3, '2024-07-25');
 
+-- 在庫一覧をソート付きで取得するビュー
 
+CREATE VIEW v_inventories_sorted AS
+SELECT item_id, user_id, item_name, quantity, expiration_date
+FROM inventories
+ORDER BY expiration_date ASC NULLS LAST, item_name ASC;
 
+-- 期限切れアラート用のビュー
+
+CREATE VIEW v_inventories_alert AS
+SELECT item_id, user_id, item_name, quantity, expiration_date
+FROM inventories
+WHERE expiration_date <= CURRENT_DATE
+ORDER BY expiration_date ASC, item_name ASC;
