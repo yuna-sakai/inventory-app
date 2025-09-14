@@ -42,19 +42,23 @@ public class InventoryController {
     }
 
     @PostMapping("/registerInventory")
-    public String registerInventory(@Valid @ModelAttribute InventoryForm inventoryForm, BindingResult bindingResult,
-            Model model, HttpSession session) {
+    public String registerInventory(
+            @Valid @ModelAttribute InventoryForm inventoryForm,
+            BindingResult bindingResult,
+            Model model,
+            HttpSession session) {
 
         String redirect = authController.checkLogin();
-        if (redirect != null)
-            return redirect;
+        if (redirect != null) return redirect;
 
+        // バリデーションエラーがある場合は入力画面へ戻す
         if (bindingResult.hasErrors()) {
             return "registerInventory";
         }
 
+        // 賞味期限チェック
         LocalDate expiryDate = null;
-        if (!inventoryForm.getExpiryDate().isEmpty()) {
+        if (inventoryForm.getExpiryDate() != null && !inventoryForm.getExpiryDate().isEmpty()) {
             try {
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 expiryDate = LocalDate.parse(inventoryForm.getExpiryDate(), formatter);
@@ -64,11 +68,19 @@ public class InventoryController {
             }
         }
 
+        // ログインユーザー取得
         User user = (User) session.getAttribute("user");
         int userId = user.getUserId();
 
-        int quantity = Integer.parseInt(inventoryForm.getQuantity());
-        inventoryService.registerInventory(inventoryForm.getItemId(), userId, inventoryForm.getItemName(), quantity,
+        // quantity は Integer なのでそのまま利用
+        int quantity = inventoryForm.getQuantity();
+
+        // 在庫登録処理
+        inventoryService.registerInventory(
+                inventoryForm.getItemId(),
+                userId,
+                inventoryForm.getItemName(),
+                quantity,
                 expiryDate);
 
         return "redirect:/inventoryList";
