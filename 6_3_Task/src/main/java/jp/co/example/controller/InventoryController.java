@@ -51,12 +51,10 @@ public class InventoryController {
         String redirect = authController.checkLogin();
         if (redirect != null) return redirect;
 
-        // バリデーションエラーがある場合は入力画面へ戻す
         if (bindingResult.hasErrors()) {
             return "registerInventory";
         }
 
-        // 賞味期限チェック
         LocalDate expiryDate = null;
         if (inventoryForm.getExpiryDate() != null && !inventoryForm.getExpiryDate().isEmpty()) {
             try {
@@ -68,14 +66,11 @@ public class InventoryController {
             }
         }
 
-        // ログインユーザー取得
         User user = (User) session.getAttribute("user");
         int userId = user.getUserId();
 
-        // quantity は Integer なのでそのまま利用
         int quantity = inventoryForm.getQuantity();
 
-        // 在庫登録処理
         inventoryService.registerInventory(
                 inventoryForm.getItemId(),
                 userId,
@@ -139,7 +134,7 @@ public class InventoryController {
     }
 
     // =========================
-    // 詳細・数量変更・削除は既存通り
+    // 詳細・数量変更・削除
     // =========================
     @GetMapping("/inventoryDetail")
     public String showInventoryDetail(@RequestParam("id") int id, Model model) {
@@ -156,22 +151,40 @@ public class InventoryController {
         return "inventoryDetail";
     }
 
+    // =========================
+    // 総在庫チェック付き増加
+    // =========================
     @PostMapping("/increaseQuantity")
-    public String increaseQuantity(@RequestParam("id") int id, @RequestParam("quantity") int quantity) {
+    public String increaseQuantity(@RequestParam("id") int id,
+                                   @RequestParam("quantity") int quantity,
+                                   Model model) {
         String redirect = authController.checkLogin();
         if (redirect != null)
             return redirect;
 
         Inventory inventory = inventoryService.getInventoryById(id);
         if (inventory != null) {
-            inventory.setQuantity(inventory.getQuantity() + quantity);
+            int newTotal = inventory.getQuantity() + quantity;
+
+            // 総在庫9999超過チェック
+            if (newTotal > 9999) {
+                model.addAttribute("inventory", inventory);
+                model.addAttribute("errorMessage", "総在庫数が9999を超えるため、増加できません。");
+                return "inventoryDetail";
+            }
+
+            // 更新
+            inventory.setQuantity(newTotal);
             inventoryService.updateInventory(inventory);
         }
+
         return "redirect:/inventoryDetail?id=" + id;
     }
 
     @PostMapping("/decreaseQuantity")
-    public String decreaseQuantity(@RequestParam("id") int id, @RequestParam("quantity") int quantity, Model model) {
+    public String decreaseQuantity(@RequestParam("id") int id,
+                                   @RequestParam("quantity") int quantity,
+                                   Model model) {
         String redirect = authController.checkLogin();
         if (redirect != null)
             return redirect;
