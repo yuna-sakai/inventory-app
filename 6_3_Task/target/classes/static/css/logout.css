@@ -1,0 +1,55 @@
+@charset "UTF-8";
+
+/* 全体のスタイル */
+body {
+	font-family: "Comic Sans MS", cursive, sans-serif;
+	margin: 20px;
+	background: url('../images/background.jpg') no-repeat center center fixed;
+	background-size: cover;
+	color: #333;
+}
+
+.container {
+	background: rgba(255, 255, 255, 0.8);
+	padding: 20px 40px;
+	border-radius: 10px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	text-align: center;
+	max-width: 600px;
+	margin: 100px auto;
+}
+
+.center {
+	text-align: center;
+}
+
+p {
+	font-size: 18px;
+	color: #8b4513;
+	/* サドルブラウン */
+	margin: 20px 0;
+}
+
+/* ボタンのスタイル */
+a.btn,
+button.btn {
+	color: white;
+	text-align: center;
+	font-size: 18px;
+	font-weight: bold;
+	background-color: #ff69b4;
+	/* ピンク色 */
+	border-radius: 5px;
+	cursor: pointer;
+	border: none;
+	padding: 10px 20px;
+	text-decoration: none;
+	display: inline-block;
+	margin: 5px;
+}
+
+a.btn:hover,
+button.btn:hover {
+	background-color: #ff1493;
+	/* 濃いピンク色 */
+}
