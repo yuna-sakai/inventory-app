@@ -2,6 +2,7 @@
 	pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -24,27 +25,52 @@
 	</c:if>
 
 	<c:if test="${not empty inventoryList}">
-		<table>
-			<thead>
-				<tr>
-					<th>食材名</th>
-					<th>個数</th>
-					<th>賞味期限</th>
-				</tr>
-			</thead>
-			<tbody>
-				<c:forEach var="inventory" items="${inventoryList}">
-					<tr>
-						<td><a href="inventoryDetail?id=${inventory.itemId}">${inventory.itemName}</a></td>
-						<td>${inventory.quantity}</td>
-						<td style="${inventory.expiringSoon ? 'color: red;' : ''}">
-							${inventory.expiryDate != null ? inventory.expiryDate.toString() : ''}
-						</td>
-					</tr>
-				</c:forEach>
-			</tbody>
-		</table>
-	</c:if>
+    <table>
+      <thead>
+        <tr>
+          <th>
+            <!-- 単独で 食材名↓ に並べ替えるリンク（任意） -->
+            <a href="<c:url value='/inventoryList'>
+                        <c:param name='searchQuery' value='${param.searchQuery}'/>
+                        <c:param name='sort1' value='item_name'/>
+                        <c:param name='dir1'  value='desc'/>
+                     </c:url>">
+              食材名 ▼
+            </a>
+          </th>
+          <th>個数</th>
+          <th>
+            <!-- 単独で 賞味期限↑ に並べ替えるリンク（任意） -->
+            <a href="<c:url value='/inventoryList'>
+                        <c:param name='searchQuery' value='${param.searchQuery}'/>
+                        <c:param name='sort1' value='expiry_date'/>
+                        <c:param name='dir1'  value='asc'/>
+                     </c:url>">
+              賞味期限 ▲
+            </a>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <c:forEach var="inventory" items="${inventoryList}">
+          <tr>
+            <td>
+              <a href="<c:url value='/inventoryDetail'>
+                         <c:param name='id' value='${inventory.itemId}'/>
+                       </c:url>">${inventory.itemName}</a>
+            </td>
+            <td>${inventory.quantity}</td>
+            <<td style="${inventory.expiringSoon ? 'color: red;' : ''}">
+  <c:if test="${not empty inventory.expiryDate}">
+    <c:out value="${fn:replace(fn:substring(inventory.expiryDate, 0, 10), '-', '/')}"/>
+  </c:if>
+</td>
+          </tr>
+        </c:forEach>
+      </tbody>
+    </table>
+  </c:if>
+
 
 	<c:if test="${empty inventoryList}">
 		<p>在庫が見つかりませんでした。</p>
