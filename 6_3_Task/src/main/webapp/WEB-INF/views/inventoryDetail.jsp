@@ -33,13 +33,13 @@
 	<div>
 		<form action="increaseQuantity" method="post" style="display: inline;">
 			<input type="hidden" name="id" value="${inventory.itemId}" /> <label>増やす量:
-				<input type="number" name="quantity" min="1" value="1" />
+				<input type="number" name="quantity" min="1" max="9999" />
 			</label>
 			<button type="submit" class="btn">増やす</button>
 		</form>
 		<form action="decreaseQuantity" method="post" style="display: inline;">
 			<input type="hidden" name="id" value="${inventory.itemId}" /> <label>減らす量:
-				<input type="number" name="quantity" min="1" value="1" />
+				<input type="number" name="quantity" min="1" max="9999" />
 			</label>
 			<button type="submit" class="btn">減らす</button>
 		</form>
