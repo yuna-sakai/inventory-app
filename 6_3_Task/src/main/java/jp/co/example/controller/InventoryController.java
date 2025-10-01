@@ -1,7 +1,10 @@
 package jp.co.example.controller;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import jp.co.example.controller.form.InventoryForm;
 import jp.co.example.model.Inventory;
 import jp.co.example.model.User;
-import jp.co.example.service.InventoryService;
+import jp.co.example.service.InventoryService;  
 
 @Controller
 public class InventoryController {
@@ -74,50 +77,84 @@ public class InventoryController {
 		return "redirect:/inventoryList";
 	}
 
-	@GetMapping("/inventoryList")
-	public String showInventoryList(Model model) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+	   private Comparator<Inventory> comparatorFor(String col, String dir) {
+	        Comparator<Inventory> c;
+	        switch (col) {
+	            case "item_name":
+	                c = Comparator.comparing(Inventory::getItemName,
+	                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+	                break;
+	            case "quantity":
+	                c = Comparator.comparingInt(Inventory::getQuantity);
+	                break;
+	            case "expiry_date":
+	            default:
+	                c = Comparator.comparing(Inventory::getExpiryDate,
+	                        Comparator.nullsLast(Comparator.naturalOrder()));
+	                break;
+	        }
+	        return "desc".equalsIgnoreCase(dir) ? c.reversed() : c;
+	    }
 
-		LocalDate currentDate = LocalDate.now();
-		List<Inventory> inventoryList = inventoryService.getAllInventories().stream()
-				.peek(inventory -> {
-					if (inventory.getExpiryDate() != null) {
-						inventory.setIsExpiringSoon(inventory.getExpiryDate().isBefore(currentDate.plusDays(4)));
-					} else {
-						inventory.setIsExpiringSoon(false);
-					}
-				})
-				.collect(Collectors.toList());
+	    private Comparator<Inventory> buildComparator(
+	            String sort1, String dir1, String sort2, String dir2) {
+	        return comparatorFor(sort1, dir1).thenComparing(comparatorFor(sort2, dir2));
+	    }
 
-		model.addAttribute("inventoryList", inventoryList);
-		return "inventoryList";
-	}
+	    @GetMapping("/inventoryList")
+	    public String showInventoryList(
+	            @RequestParam(required = false) String searchQuery,
+	            @RequestParam(defaultValue = "expiry_date") String sort1,
+	            @RequestParam(defaultValue = "asc")          String dir1,
+	            @RequestParam(defaultValue = "item_name")    String sort2,
+	            @RequestParam(defaultValue = "desc")         String dir2,
+	            Model model) {
 
-	@GetMapping("/searchResult")
-	public String searchResult(@RequestParam("searchQuery") String searchQuery, Model model) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+	        String redirect = authController.checkLogin();
+	        if (redirect != null) return redirect;
 
-		if (searchQuery == null || searchQuery.trim().isEmpty()) {
-			model.addAttribute("errorMessage", "食材名を入力してください");
-			model.addAttribute("inventoryList", inventoryService.getAllInventories());
-			return "inventoryList";
-		}
+	       
+	        List<Inventory> list = (searchQuery == null || searchQuery.isBlank())
+	                ? inventoryService.getAllInventories()
+	                : inventoryService.searchInventory(searchQuery);
 
-		List<Inventory> inventoryList = inventoryService.searchInventory(searchQuery);
-		if (inventoryList.isEmpty()) {
-			model.addAttribute("errorMessage", "登録されていない食材です");
-			model.addAttribute("inventoryList", inventoryService.getAllInventories());
-			return "inventoryList";
-		} else {
-			model.addAttribute("inventoryList", inventoryList);
-			return "searchResult";
-		}
-	}
+	        
+	        LocalDate currentDate = LocalDate.now();
+	        list.forEach(inv -> inv.setIsExpiringSoon(
+	                inv.getExpiryDate() != null && inv.getExpiryDate().isBefore(currentDate.plusDays(4))
+	        ));
 
+	        
+	        list = list.stream()
+	                .sorted(buildComparator(sort1, dir1, sort2, dir2))
+	                .collect(Collectors.toList());
+
+	        model.addAttribute("inventoryList", list);
+	        return "inventoryList";
+	    }
+
+	    // /searchResult は /inventoryList に寄せる（任意。残すなら同じ並べ替えを適用）
+	    @GetMapping("/searchResult")
+	    public String searchResult(
+	            @RequestParam("searchQuery") String searchQuery,
+	            @RequestParam(defaultValue = "expiry_date") String sort1,
+	            @RequestParam(defaultValue = "asc")          String dir1,
+	            @RequestParam(defaultValue = "item_name")    String sort2,
+	            @RequestParam(defaultValue = "desc")         String dir2) {
+
+	        String redirect = authController.checkLogin();
+	        if (redirect != null) return redirect;
+
+	        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+	            return "redirect:/inventoryList?errorMessage="
+	                    + URLEncoder.encode("食材名を入力してください", StandardCharsets.UTF_8);
+	        }
+	        // そのまま inventoryList にリダイレクトし、同じロジックを使う
+	        String q = URLEncoder.encode(searchQuery, StandardCharsets.UTF_8);
+	        return "redirect:/inventoryList?searchQuery=" + q
+	                + "&sort1=" + sort1 + "&dir1=" + dir1
+	                + "&sort2=" + sort2 + "&dir2=" + dir2;
+	    }
 	@GetMapping("/inventoryDetail")
 	public String showInventoryDetail(@RequestParam("id") int id, Model model) {
 		String redirect = authController.checkLogin();
