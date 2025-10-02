@@ -30,13 +30,27 @@
 		<p style="color: red;">${errorMessage}</p>
 	</c:if>
 
+<c:set var="remaining" value="${(empty maxAdd) ? (9999 - inventory.quantity) : maxAdd}" />
+
+
+
 	<div>
-		<form action="increaseQuantity" method="post" style="display: inline;">
-			<input type="hidden" name="id" value="${inventory.itemId}" /> <label>増やす量:
-				<input type="number" name="quantity" min="1" max="9999" />
-			</label>
-			<button type="submit" class="btn">増やす</button>
-		</form>
+		<c:choose>
+  <c:when test="${remaining > 0}">
+    <form action="<c:url value='/increaseQuantity'/>" method="post" style="display:inline;">
+      <input type="hidden" name="id" value="${inventory.itemId}"><label>増やす量:
+      <input type="number" name="quantity" min="1" max="${remaining}" value="1" required>
+      </label>
+            <button type="submit" class="btn">増やす</button>
+    </form>
+  </c:when>
+  <c:otherwise>
+    <input type="number" value="0" disabled>
+    <small style="color:red">これ以上追加できません</small>
+    <button type="button" class="btn" disabled>増やす</button>
+  </c:otherwise>
+</c:choose>
+
 		<form action="decreaseQuantity" method="post" style="display: inline;">
 			<input type="hidden" name="id" value="${inventory.itemId}" /> <label>減らす量:
 				<input type="number" name="quantity" min="1" max="9999" />
