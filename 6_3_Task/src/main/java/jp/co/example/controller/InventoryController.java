@@ -170,39 +170,75 @@ public class InventoryController {
 		return "inventoryDetail";
 	}
 
-	@PostMapping("/increaseQuantity")
-	public String increaseQuantity(@RequestParam("id") int id, @RequestParam("quantity") int quantity) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+	private static final int MIN_QTY = 1;
+	private static final int MAX_QTY = 9999;
 
-		Inventory inventory = inventoryService.getInventoryById(id);
-		if (inventory != null) {
-			inventory.setQuantity(inventory.getQuantity() + quantity);
-			inventoryService.updateInventory(inventory);
-		}
-		return "redirect:/inventoryDetail?id=" + id;
+	private boolean isInvalidInputQty(Integer q) {
+	    return (q == null || q < MIN_QTY || q > MAX_QTY);
+	}
+	
+	
+	@PostMapping("/increaseQuantity")
+	public String increaseQuantity(@RequestParam("id") int id,
+	                               @RequestParam("quantity") Integer quantity,
+	                               Model model) {
+	    String redirect = authController.checkLogin();
+	    if (redirect != null) return redirect;
+
+	    Inventory inv = inventoryService.getInventoryById(id);
+	    if (inv == null) return "redirect:/inventoryList";
+
+	    // 入力値チェック（1〜9999）
+	    if (isInvalidInputQty(quantity)) {
+	        model.addAttribute("inventory", inv);
+	        model.addAttribute("maxAdd", Math.max(0, MAX_QTY - inv.getQuantity()));
+	        model.addAttribute("errorMessage", "1〜9999で入力してください。");
+	        return "inventoryDetail";
+	    }
+
+	    // 計算結果チェック（合計が9999を超えない）
+	    int remaining = MAX_QTY - inv.getQuantity();
+	    if (quantity > remaining) {
+	        model.addAttribute("inventory", inv);
+	        model.addAttribute("maxAdd", Math.max(0, remaining));
+	        model.addAttribute("errorMessage",
+	                "合計が9999を超えます。");
+	        return "inventoryDetail";
+	    }
+
+	    // OK
+	    inv.setQuantity(inv.getQuantity() + quantity);
+	    inventoryService.updateInventory(inv);
+	    return "redirect:/inventoryDetail?id=" + id;
 	}
 
 	@PostMapping("/decreaseQuantity")
-	public String decreaseQuantity(@RequestParam("id") int id, @RequestParam("quantity") int quantity, Model model) {
-		String redirect = authController.checkLogin();
-		if (redirect != null)
-			return redirect;
+	public String decreaseQuantity(@RequestParam("id") int id,
+	                               @RequestParam("quantity") Integer quantity,
+	                               Model model) {
+	    String redirect = authController.checkLogin();
+	    if (redirect != null) return redirect;
 
-		Inventory inventory = inventoryService.getInventoryById(id);
-		if (inventory != null) {
-			if (inventory.getQuantity() > quantity) {
-				inventory.setQuantity(inventory.getQuantity() - quantity);
-				inventoryService.updateInventory(inventory);
-				return "redirect:/inventoryDetail?id=" + id;
-			} else {
-				model.addAttribute("inventory", inventory);
-				model.addAttribute("errorMessage", "削除を押してください。");
-				return "inventoryDetail";
-			}
-		}
-		return "redirect:/inventoryList";
+	    Inventory inventory = inventoryService.getInventoryById(id);
+	    if (inventory == null) return "redirect:/inventoryList";
+
+	    // 入力値チェック（1〜9999）
+	    if (isInvalidInputQty(quantity)) {
+	        model.addAttribute("inventory", inventory);
+	        model.addAttribute("errorMessage", "1〜9999で入力してください。");
+	        return "inventoryDetail";
+	    }
+
+	   
+	    if (inventory.getQuantity() > quantity) {
+	        inventory.setQuantity(inventory.getQuantity() - quantity);
+	        inventoryService.updateInventory(inventory);
+	        return "redirect:/inventoryDetail?id=" + id;
+	    } else {
+	        model.addAttribute("inventory", inventory);
+	       
+	        return "inventoryDetail";
+	    }
 	}
 
 	@PostMapping("/deleteInventory")
