@@ -1,7 +1,9 @@
 package jp.co.example.controller;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -19,12 +21,17 @@ public class AlertController {
 
 	@GetMapping("/alertList")
 	public String showAlertList(Model model) {
-		LocalDate currentDate = LocalDate.now();
-		LocalDate alertDate = currentDate.plusDays(3);
+	    LocalDate currentDate = LocalDate.now();
+	    LocalDate alertDate = currentDate.plusDays(3);
 
-		List<Inventory> alertList = inventoryService.findItemsExpiringBefore(alertDate);
-		model.addAttribute("alertList", alertList);
+	    
+	    List<Inventory> alertList = inventoryService.findItemsExpiringBefore(alertDate)
+	        .stream()
+	        .sorted(Comparator.comparing(Inventory::getExpiryDate,
+	                Comparator.nullsLast(Comparator.naturalOrder())))
+	        .collect(Collectors.toList());
 
-		return "alertList";
+	    model.addAttribute("alertList", alertList);
+	    return "alertList";
 	}
 }
