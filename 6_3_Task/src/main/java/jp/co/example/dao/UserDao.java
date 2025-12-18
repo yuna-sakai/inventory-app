@@ -13,4 +13,5 @@ public interface UserDao {
 	boolean isLoginIdDuplicate(String loginId); // ログインIDが重複しているかを確認
 
 	void save(User user); // ユーザー情報を保存
+	
 }
