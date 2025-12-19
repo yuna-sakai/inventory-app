@@ -22,7 +22,7 @@ public class PgInventoryDao implements InventoryDao {
 
 	@Override
 	public List<Inventory> findByItemNameContaining(String itemName) {
-		String sql = "SELECT * FROM inventories WHERE item_name LIKE ?";
+		String sql = "SELECT * FROM inventories WHERE item_name LIKE ? ORDER BY expiration_date ASC NULLS LAST, item_name ASC";
 		return jdbcTemplate.query(sql, new Object[] { "%" + itemName + "%" }, new RowMapper<Inventory>() {
 			@Override
 			public Inventory mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -76,7 +76,7 @@ public class PgInventoryDao implements InventoryDao {
 
 	@Override
 	public List<Inventory> findAll() {
-		String sql = "SELECT * FROM inventories";
+		String sql = "SELECT * FROM inventories ORDER BY expiration_date ASC NULLS LAST, item_name ASC";
 		return jdbcTemplate.query(sql, new RowMapper<Inventory>() {
 			@Override
 			public Inventory mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -103,7 +103,7 @@ public class PgInventoryDao implements InventoryDao {
 
 	@Override
 	public List<Inventory> findItemsExpiringBefore(LocalDate date) {
-		String sql = "SELECT * FROM inventories WHERE expiration_date <= ?";
+		String sql = "SELECT * FROM inventories WHERE expiration_date <= ? ORDER BY expiration_date ASC NULLS LAST, item_name ASC";
 		return jdbcTemplate.query(sql, new Object[] { date }, new RowMapper<Inventory>() {
 			@Override
 			public Inventory mapRow(ResultSet rs, int rowNum) throws SQLException {
