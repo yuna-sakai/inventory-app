@@ -134,16 +134,23 @@ public class InventoryController {
 	}
 
 	@PostMapping("/increaseQuantity")
-	public String increaseQuantity(@RequestParam("id") int id, @RequestParam("quantity") int quantity) {
+	public String increaseQuantity(@RequestParam("id") int id, @RequestParam("quantity") int quantity,Model model) {
 		String redirect = authController.checkLogin();
 		if (redirect != null)
 			return redirect;
 
 		Inventory inventory = inventoryService.getInventoryById(id);
-		if (inventory != null) {
+		if (inventory == null) {
+			 return "redirect:/inventoryList";
+		}
+		
+		if (quantity < 1 || quantity > 9999) {
+		    model.addAttribute("inventory", inventory);
+		    return "inventoryDetail";  
+		}	
 			inventory.setQuantity(inventory.getQuantity() + quantity);
 			inventoryService.updateInventory(inventory);
-		}
+		
 		return "redirect:/inventoryDetail?id=" + id;
 	}
 

@@ -32,7 +32,7 @@ public class PgUserDao implements UserDao {
 
 	@Autowired
 	private NamedParameterJdbcTemplate jdbcTemplate;
-
+			
 	@Override
 	public List<User> findAll() {
 		return jdbcTemplate.query(FIND_ALL, new UserRowMapper());
@@ -79,6 +79,7 @@ public class PgUserDao implements UserDao {
 			return jdbcTemplate.queryForObject(FIND_BY_LOGIN_ID_AND_PASSWORD, params, new UserRowMapper());
 		} catch (Exception e) {
 			return null;
-		}
-	}
+			}
+	}	
+
 }
